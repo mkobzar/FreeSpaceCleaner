@@ -3,16 +3,21 @@ using System.IO;
 using System.Linq;
 using System.Text;
 
-namespace freeSpaceCleaner
+namespace DiskCleaner
 {
     internal class FreeSpaceCleaner
     {
         static void Main()
         {
             var driveName = Path.GetPathRoot(Directory.GetCurrentDirectory());
+            if (driveName == null)
+            {
+                Console.WriteLine("Path.GetPathRoot(Directory.GetCurrentDirectory()) == null");
+                return;
+            }
+
             var str = new StringBuilder();
             var fileSuffix = "TmpZrr";
-            var fileCopuint = 0;
             var fileSize = 1024 * 1024;
             str.Append('1', fileSize);
             StreamWriter streamWriter = null;
@@ -24,7 +29,7 @@ namespace freeSpaceCleaner
                     var availableFreeSpace = drive.AvailableFreeSpace;
                     var j = fileSize * 1024 < availableFreeSpace ? 1024 : (int)availableFreeSpace / 1024;
                     if (fileSize > availableFreeSpace || j < 1) break;
-                    var currentFileName = $"{fileSuffix}{fileCopuint++}";
+                    var currentFileName = $"{fileSuffix}.{Guid.NewGuid()}";
                     streamWriter = new StreamWriter(currentFileName);
 
                     for (var i = 0; i < j; i++)
@@ -45,14 +50,23 @@ namespace freeSpaceCleaner
             }
             try
             {
-                streamWriter.Flush();
-                streamWriter.Close();
+                if (streamWriter != null)
+                {
+                    streamWriter.Flush();
+                    streamWriter.Close();
+                }
             }
             catch
             {
 
             }
-            Console.Write("\rcleaning free space                ");
+            Console.WriteLine($"AvailableFreeSpace now: {new DriveInfo(driveName).AvailableFreeSpace} bites");
+            while (true)
+            {
+                Console.WriteLine("hit 'y' to clean the disk");
+                if (Console.ReadLine() == "y") break;
+            }
+            Console.WriteLine("cleaning free space");
             var fileList = Directory.GetFiles(".\\", $"{fileSuffix}*").ToList();
             fileList.ForEach(x =>
             {
