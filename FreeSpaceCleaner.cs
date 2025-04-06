@@ -20,15 +20,7 @@ namespace DiskCleaner
             {
                 directory = directory + "\\";
             }
-
-
             var driveName = Path.GetPathRoot(directory);
-            if (driveName == null)
-            {
-                Console.WriteLine("Path.GetPathRoot(Directory.GetCurrentDirectory()) == null");
-                return;
-            }
-
             var str = new StringBuilder();
             var fileSuffix = $"{directory}TmpZrr";
             var fileSize = 1024 * 1024;
