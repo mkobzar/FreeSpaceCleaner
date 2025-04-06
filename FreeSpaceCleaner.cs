@@ -7,9 +7,22 @@ namespace DiskCleaner
 {
     internal class FreeSpaceCleaner
     {
-        static void Main()
+        static void Main(string[] args)
         {
-            var driveName = Path.GetPathRoot(Directory.GetCurrentDirectory());
+            if (!IsValidDirectoryPath(args[0]))
+            {
+                Usage();
+                return;
+            }
+            var directory = args[0];
+
+            if (!directory.EndsWith("\\"))
+            {
+                directory = directory + "\\";
+            }
+
+
+            var driveName = Path.GetPathRoot(directory);
             if (driveName == null)
             {
                 Console.WriteLine("Path.GetPathRoot(Directory.GetCurrentDirectory()) == null");
@@ -17,7 +30,7 @@ namespace DiskCleaner
             }
 
             var str = new StringBuilder();
-            var fileSuffix = "TmpZrr";
+            var fileSuffix = $"{directory}TmpZrr";
             var fileSize = 1024 * 1024;
             str.Append('1', fileSize);
             StreamWriter streamWriter = null;
@@ -31,13 +44,13 @@ namespace DiskCleaner
                     if (fileSize > availableFreeSpace || j < 1) break;
                     var currentFileName = $"{fileSuffix}.{Guid.NewGuid()}";
                     streamWriter = new StreamWriter(currentFileName);
-
+                    Console.WriteLine();  
                     for (var i = 0; i < j; i++)
                     {
                         streamWriter.Write(str);
                         if (i % 10 == 0)
                         {
-                            Console.Write($"\r{Math.Round((double)drive.AvailableFreeSpace / 1024 / 1024 / 1024, 2)} GB remaining          ");
+                            Console.Write($"\r{currentFileName}   ....   {Math.Round((double)drive.AvailableFreeSpace / 1024 / 1024 / 1024, 2)} GB remaining          ");
                         }
                     }
                     streamWriter.Flush();
@@ -46,6 +59,10 @@ namespace DiskCleaner
                 catch (Exception e)
                 {
                     Console.WriteLine(e.Message);
+                    if(!String.IsNullOrEmpty(e.Message) && e.Message.ToLower().Contains(" is denied"))
+                    {
+                        return;
+                    }
                 }
             }
             try
@@ -81,6 +98,69 @@ namespace DiskCleaner
                 }
             });
             Console.Write($"\rDone. Free space on {driveName} drive is clean now                  ");
+        }
+
+        static void Usage()
+        {
+            Console.Write($"\r\nSecurely Wipe Free Disk Space");
+            Console.Write($"\r\nFreeSpaceCleaner [drive:][path]");
+        }
+
+        public static bool IsValidDriveLetter(string drive)
+        {
+            if (string.IsNullOrEmpty(drive))
+                return false;
+
+            // Check if length is 1 (e.g., "C") or 2 (e.g., "C:")
+            if (drive.Length != 1 && drive.Length != 2)
+                return false;
+
+            // Check if first character is a letter (A-Z, case-insensitive)
+            if (!char.IsLetter(drive[0]))
+                return false;
+
+            // If length is 2, the second character must be ':'
+            if (drive.Length == 2 && drive[1] != ':')
+                return false;
+
+            // Optionally: Check if the drive actually exists on the system
+            // var drives = DriveInfo.GetDrives();
+            // return drives.Any(d => d.Name.StartsWith(drive, StringComparison.OrdinalIgnoreCase));
+
+            return true;
+        }
+
+        public static bool IsValidDirectoryPath(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+                return false;
+
+            // Check for invalid path characters
+            if (path.IndexOfAny(Path.GetInvalidPathChars()) >= 0)
+                return false;
+
+            if (IsValidDriveLetter(path))
+            {
+                return true;
+            }
+
+            try
+            {
+                // Optionally: Check if it's an absolute or rooted path
+                if (!Path.IsPathRooted(path))
+                    return false; // If you only want full paths (e.g., "C:\Folder" or "/home")
+
+                // Optionally: Extract directory name (removes trailing file if any)
+                string dirName = Path.GetDirectoryName(path);
+                if (string.IsNullOrEmpty(dirName))
+                    return false;
+
+                return true; // Path format is valid
+            }
+            catch (Exception) // Catches ArgumentException, PathTooLongException, etc.
+            {
+                return false;
+            }
         }
     }
 }
